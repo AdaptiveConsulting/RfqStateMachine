@@ -1,0 +1,28 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2013
+VisualStudioVersion = 12.0.30324.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RfqStateMachine", "RfqStateMachine\RfqStateMachine.csproj", "{A56556E4-4295-4102-8077-3CEC75722F92}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tests", "Tests\Tests.csproj", "{7F2B7AA1-9EB6-4CB5-8E3D-9F51AA4F9AA0}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{A56556E4-4295-4102-8077-3CEC75722F92}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A56556E4-4295-4102-8077-3CEC75722F92}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A56556E4-4295-4102-8077-3CEC75722F92}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A56556E4-4295-4102-8077-3CEC75722F92}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7F2B7AA1-9EB6-4CB5-8E3D-9F51AA4F9AA0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7F2B7AA1-9EB6-4CB5-8E3D-9F51AA4F9AA0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7F2B7AA1-9EB6-4CB5-8E3D-9F51AA4F9AA0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7F2B7AA1-9EB6-4CB5-8E3D-9F51AA4F9AA0}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
