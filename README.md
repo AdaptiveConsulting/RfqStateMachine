@@ -14,7 +14,7 @@ We are going to build a state machine that would live client side, in some UI ap
 
 The following diagram describes the different states of the RFQ and the possible transitions.
 
-![state machine diagram](https://github.com/AdaptiveConsulting/RfqStateMachine/blob/master/StateMachine.PNG)
+![state machine diagram](https://raw.githubusercontent.com/AdaptiveConsulting/RfqStateMachine/master/StateMachine.PNG?token=1256913__eyJzY29wZSI6IlJhd0Jsb2I6QWRhcHRpdmVDb25zdWx0aW5nL1JmcVN0YXRlTWFjaGluZS9tYXN0ZXIvU3RhdGVNYWNoaW5lLlBORyIsImV4cGlyZXMiOjE0MDQwMzI4NDN9--33bd8eef1b0c9c1064f9d1844ed8f99cb19b96b4)
 
 This is a visual representation of a statemachine, it contains 
 
@@ -92,7 +92,7 @@ I like to prefix those events with their origin, just to makes things explicit (
 
 As you can see events coming from the server always expose a happy path (for instance ServerNewQuote when the server sends a new quote) and at least one corresponding error event (ServerQuoteError).
 
-![state machine diagram](https://github.com/AdaptiveConsulting/RfqStateMachine/blob/master/Components.PNG)
+![Components](https://raw.githubusercontent.com/AdaptiveConsulting/RfqStateMachine/master/Components.PNG?token=1256913__eyJzY29wZSI6IlJhd0Jsb2I6QWRhcHRpdmVDb25zdWx0aW5nL1JmcVN0YXRlTWFjaGluZS9tYXN0ZXIvQ29tcG9uZW50cy5QTkciLCJleHBpcmVzIjoxNDA0MDMyOTYxfQ%3D%3D--f635d386ef4ee480652de98f62d9903fc2660e25)
 
 
 You will also often have internal events, for instance a timer expiring can raise an internal event to trigger a state transition.
