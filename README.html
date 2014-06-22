@@ -1,0 +1,179 @@
+<h1>RFQ State Machine</h1>
+
+<p>We highlighted quite a few techniques to deal with reactive systems in <a href="https://github.com/AdaptiveConsulting/ReactiveTrader">Reactive Trader</a>. There is another one, that we commonly use, that was not demonstrated. 
+A state machine is a simple yet powerfull way of decomposing some functionality into states and a set of valid transition between them. 
+When you find yourself dealing for instance with user input and/or server events and see lots of branching in your code (if/switch statements) on some _state variables, chances are high that a statemachine could be introduced to simplify things.</p>
+
+<p>In this post we will look at a concreate usecase, we will define a state machine for it and we will see how we can organise our code around the state machnine and interact with it. </p>
+
+<h2>Example: RFQ workflow</h2>
+
+<p>In finance Request For Quote (RFQ) is a common mechanism used to request a price electronically: the client submits a request to the pricing server. 
+At some point the server provides a quote (or a serie of quotes) and the client can decide to execute (HIT the price) or pass (cancel).
+We are going to build a state machine that would live client side, in some UI application like reactive trader, to control the state of a RFQ.</p>
+
+<p>The following diagram describes the different states of the RFQ and the possible transitions.</p>
+
+<p><strong>TODO add diagram</strong></p>
+
+<p>This is a visual representation of a statemachine, it contains </p>
+
+<ul>
+<li>states:
+<ul>
+<li>an initial state (at the top),</li>
+<li>intermediate states (requesting, quoted, Executing)</li>
+<li>terminal states (Error, Done, Canceled)</li>
+</ul></li>
+<li>and transitions between states (arrows)</li>
+</ul>
+
+<p>I find those diagrams very helpfull to think about the system, while building them I will generally go through all the states I already discovered and ask myself the following questions: </p>
+
+<ul>
+<li>could anything else happen in this state? </li>
+<li>Any unhappy path? (ie. timeout, error, etc) </li>
+<li>Do we have a representation of this particular state for the corresponding UI? (if you are building a UI).</li>
+</ul>
+
+<p>Those diagrams are also very usefull to discuss with non developers: business people, UX, etc.</p>
+
+<h2>From diagram to code</h2>
+
+<p>Statemachines can be implemented in many differents ways, either from scratch or using some library. 
+For any decent size statemachine I tend to use <a href="https://code.google.com/p/stateless/">Stateless</a> but the recommendations that follow would stand for any library or hand written statemachine.</p>
+
+<p>I like to define state machines in a single place: I find that spreading the definition accross multiple files/classes makes it harder to understand (yes, I'm not a fan of the State design pattern..)</p>
+
+<p>Stateless offers a nice fluent syntax to define states and possible transitions. </p>
+
+<h3>Defining states</h3>
+
+<p>The first thing we need to do is to define the set of states, we can use an enum for that:</p>
+
+<p><code>csharp
+public enum RfqState
+{
+    Input,
+    Requesting,
+    Cancelling,
+    Cancelled,
+    Quoted,
+    Executing,
+    Error,
+    Done
+}
+</code>
+<a href="https://gist.github.com/odeheurles/9160c1b3e0687d3ebf38#file-rfqstates">gist</a></p>
+
+<h3>Events</h3>
+
+<p>Then we define the events which will trigger transitions between states. In our case those are events coming from the client or from the server. </p>
+
+<p>Again we can use an enum to define those events.</p>
+
+<p>```csharp
+public enum RfqEvent
+{
+    UserRequests,
+    UserCancels,
+    UserExecutes,</p>
+
+<pre><code>ServerNewQuote,
+ServerQuoteError,
+ServerQuoteStreamComplete,
+ServerSendsExecutionReport,
+ServerExecutionError,
+ServerCancelled,
+ServerCancellationError,
+
+InternalError,
+</code></pre>
+
+<p>}
+```
+<a href="https://gist.github.com/odeheurles/14bbd2a0b8040a808356#file-rfqevent">gist</a></p>
+
+<p>I like to prefix those events with their origin, just to makes things explicit (here we have 'Server', 'User', 'Internal')</p>
+
+<p>As you can see events coming from the server always expose a happy path (for instance ServerNewQuote when the server sends a new quote) and at least one corresponding error event (ServerQuoteError).</p>
+
+<p><strong>TODO include components diagram</strong></p>
+
+<p>You will also often have internal events, for instance a timer expiring can raise an internal event to trigger a state transition.</p>
+
+<p>Events may or not carry some data: for instance UserRequests event needs to contain the description of the product being priced.
+For those events requiring parameters it is useful to define strongly typed events. </p>
+
+<p>This is how we declare them with Stateless, for instance for the ServerSendsQuote event:</p>
+
+<p><code>csharp
+_rfqEventServerSendsQuote = _stateMachine.SetTriggerParameters&lt;IQuote&gt;(RfqEvent.ServerNewQuote);
+</code>
+<a href="https://gist.github.com/odeheurles/dea91fa626e6b468ef07#file-stronglytypedevent">gist</a></p>
+
+<h2>Defining transitions</h2>
+
+<p>Now we can define transitions. For each state we define which events are allowed and when they are triggered to which state we will transition.
+This is very straight forward with stateless:</p>
+
+<p>```csharp
+_stateMachine.Configure(RfqState.Input)
+             .Permit(RfqEvent.UserRequests, RfqState.Requesting);</p>
+
+<p>_stateMachine.Configure(RfqState.Requesting)
+             .Permit(RfqEvent.ServerNewQuote, RfqState.Quoted)
+             .Permit(RfqEvent.UserCancels, RfqState.Cancelling)
+             .Permit(RfqEvent.InternalError, RfqState.Error);</p>
+
+<p>_stateMachine.Configure(RfqState.Quoted)
+             .PermitReentry(RfqEvent.ServerNewQuote)
+             .Permit(RfqEvent.UserCancels, RfqState.Cancelling)
+             .Permit(RfqEvent.UserExecutes, RfqState.Executing);</p>
+
+<p>_stateMachine.Configure(RfqState.Executing)
+             .Permit(RfqEvent.ServerSendsExecutionReport, RfqState.Done);</p>
+
+<p>_stateMachine.Configure(RfqState.Cancelling)
+             .Permit(RfqEvent.ServerCancelled, RfqState.Cancelled);
+```
+<a href="https://gist.github.com/odeheurles/2a0ef6112f33d9f2425d">gist</a></p>
+
+<h3>Defining behavior</h3>
+
+<p>When we send an event to the state machine, two things can happen, the current state has a valid transition for this event or not. </p>
+
+<p>If the current state can accept an event we generally want to execute our code at some point around the transition:</p>
+
+<ul>
+<li>when you enter a state (or re-enter a state since it's also possible to have transitions looping back on the same state)</li>
+<li>when you exit a state</li>
+<li>upon transition, if you have different behavior to implement for different transitions leading to a same state</li>
+</ul>
+
+<p>I tend to apply actions upon entry into a state and use the other variants </p>
+
+<p><strong>Important: when implementing a statemachine, you want to put all your logic inside those actions (on state entry, on state exit, on transition) because the state machine has already checked that the incoming event was valid for the current state.</strong></p>
+
+<p>Here is an example with stateless syntax. When the use request we want to log the transition and also to prtform some logic on entry in the requesting state:</p>
+
+<p>```csharp
+<em>stateMachine.Configure(RfqState.Requesting)
+                .OnEntry(LogTransition)
+                .OnEntryFrom(</em>rfqEventUserRequests, OnEntryRequesting)
+                .Permit(RfqEvent.ServerNewQuote, RfqState.Quoted)
+                .Permit(RfqEvent.UserCancels, RfqState.Cancelling)
+                .Permit(RfqEvent.InternalError, RfqState.Error);</p>
+
+<p>private void OnEntryRequesting(IQuoteRequest quoteRequest)
+{
+    <em>requestSubscription.Disposable = _rfqService.RequestQuoteStream(quoteRequest)
+        .Timeout(TimeSpan.FromSeconds(5))
+        .ObserveOn(</em>concurrencyService.Dispatcher)
+        .SubscribeOn(<em>concurrencyService.TaskPool)
+        .Subscribe(
+            quote => _stateMachine.Fire(</em>rfqEventServerSendsQuote, quote),
+            ex => <em>stateMachine.Fire(</em>rfqEventServerQuoteError, ex),
+            () => _stateMachine.Fire(RfqEvent.ServerQuoteStreamComplete));
+}
+```</p>
