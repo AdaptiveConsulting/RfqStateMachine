@@ -139,7 +139,7 @@ _stateMachine.Configure(RfqState.Cancelling)
 When the user performs an action or the server sends back a message we want to fire an event at the state machine.
 This is straight forward with stateless
 
-```casharp
+```csharp
 // for an event without parameters
 _stateMachine.Fire(RfqEvent.ServerQuoteStreamComplete)
 
