@@ -147,7 +147,9 @@ namespace RfqStateMachine
                 .ObserveOn(_concurrencyService.Dispatcher)
                 .SubscribeOn(_concurrencyService.TaskPool)
                 .Subscribe(
-                    quote => _stateMachine.Fire(_rfqEventServerSendsQuote, quote),
+                // /!\ we are only allowed to transition the state machine here, no other code! 
+                // This applies to all server callbacks
+                    quote => _stateMachine.Fire(_rfqEventServerSendsQuote, quote), 
                     ex => _stateMachine.Fire(_rfqEventServerQuoteError, ex),
                     () => _stateMachine.Fire(RfqEvent.ServerQuoteStreamComplete));
         }
@@ -161,6 +163,8 @@ namespace RfqStateMachine
                 .ObserveOn(_concurrencyService.Dispatcher)
                 .SubscribeOn(_concurrencyService.TaskPool)
                 .Subscribe(
+                // /!\ we are only allowed to transition the state machine here, no other code! 
+                // This applies to all server callbacks
                     _ => _stateMachine.Fire(RfqEvent.ServerCancelled),
                     ex => _stateMachine.Fire(_rfqEventServerCancellationError, ex));
         }
@@ -174,6 +178,8 @@ namespace RfqStateMachine
                 .ObserveOn(_concurrencyService.Dispatcher)
                 .SubscribeOn(_concurrencyService.TaskPool)
                 .Subscribe(
+                // /!\ we are only allowed to transition the state machine here, no other code! 
+                // This applies to all server callbacks 
                     executionReport => _stateMachine.Fire(_rfqEventServerSendsExecutionReport, executionReport),
                     ex => _stateMachine.Fire(_rfqEventServerExecutionError, ex));
         }
@@ -215,7 +221,6 @@ namespace RfqStateMachine
             Console.WriteLine(message);
 
             _rfqUpdateSubject.OnError(new ApplicationException(message));
-            // show some technical error to the user or transition to error state
         }
 
         public void Dispose()

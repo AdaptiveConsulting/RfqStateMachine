@@ -1,7 +1,7 @@
 # RFQ State Machine
 
 We highlighted quite a few techniques to deal with reactive systems in [Reactive Trader](https://github.com/AdaptiveConsulting/ReactiveTrader). There is another one, that we commonly use, that was not demonstrated. 
-A state machine is a simple yet powerfull way of decomposing some functionality into states and a set of valid transition between them. 
+A *state machine* is a simple yet powerfull way of decomposing some functionality into *states* and a set of valid *transitions* between them. 
 When you find yourself dealing for instance with user input and/or server events and see lots of branching in your code (if/switch statements) on some _state variables, chances are high that a statemachine could be introduced to simplify things.
 
 In this post we will look at a concreate usecase, we will define a state machine for it and we will see how we can organise our code around the state machnine and interact with it. 
@@ -107,8 +107,7 @@ _rfqEventServerSendsQuote = _stateMachine.SetTriggerParameters<IQuote>(RfqEvent.
 ```
 [gist](https://gist.github.com/odeheurles/dea91fa626e6b468ef07#file-stronglytypedevent)
 
-Defining transitions
---------------------
+###Defining transitions
 
 Now we can define transitions. For each state we define which events are allowed and when they are triggered to which state we will transition.
 This is very straight forward with stateless:
@@ -135,7 +134,20 @@ _stateMachine.Configure(RfqState.Cancelling)
 ```
 [gist](https://gist.github.com/odeheurles/2a0ef6112f33d9f2425d)
 
-###Defining behavior
+### Triggering events
+
+When the user performs an action or the server sends back a message we want to fire an event at the state machine.
+This is straight forward with stateless
+
+```casharp
+// for an event without parameters
+_stateMachine.Fire(RfqEvent.ServerQuoteStreamComplete)
+
+// for a strongly typed event
+_stateMachine.Fire(_rfqEventServerSendsExecutionReport, executionReport)
+```
+
+###Defining actions
 
 When we send an event to the state machine, two things can happen, the current state has a valid transition for this event or not. 
 
@@ -171,3 +183,70 @@ private void OnEntryRequesting(IQuoteRequest quoteRequest)
             () => _stateMachine.Fire(RfqEvent.ServerQuoteStreamComplete));
 }
 ```
+
+**Tip**: you can think of the OnExit action as a Dispose() method for the corresponding state. It is very useful if for instance you had a timer runing during that state and you need to cancel it or you have whatever active Rx query that you want to unsubscribe.
+
+### Handling errors
+
+When an event is fired at the state machine and the state machine has no transition defined for this event in the current state we can implement 2 behaviors: ignoring the event or raising an exception.
+
+By default Stateless will raise an exception but you can handle yourself invalid transitions:
+
+```csharp
+_stateMachine.OnUnhandledTrigger(OnUnhandledTrigger);
+
+private void OnUnhandledTrigger(RfqState state, RfqEvent trigger)
+{
+    var message = string.Format("State machine received an invalid trigger '{0}' in state '{1}'", trigger, state);
+    Console.WriteLine(message);
+
+    _rfqUpdateSubject.OnError(new ApplicationException(message));
+}
+```
+
+You can also ignore individual events on a state with the Stateless *.Ignore()* method.
+
+### Encapsulation
+
+We have now defined everything we need for the state machine:
+ - states,
+ - events and strongly typed events
+ - possible transitions
+ - actions on entry and on exit
+ - error handling
+ - how to fire events at the state machine
+
+The next step is to encapsulate everything in a single class so we don't leak the specifics of Stateless and the state machine to the rest of our code.
+
+For our example I've created a class **Rfq** that you can find [here](https://github.com/AdaptiveConsulting/RfqStateMachine/blob/master/RfqStateMachine/Rfq.cs).
+
+This class implements the following interface:
+
+```csharp
+public interface IRfq : IDisposable
+{
+    void RequestQuote(IQuoteRequest quoteRequest);
+    void Cancel(long rfqId);
+    void Execute(IExecutionRequest quote);
+
+    IObservable<RfqUpdate> Updates { get; } 
+}
+```
+
+This is very much CQRS style: a view model can call the RequestQuote, Cancel and Execute methods which act as Commands and internally fire events (don't get confused by commands, events, messages, it's all the same here).
+
+The view model also subscribes to the Updates stream which will notify when the state machine transitions and provide the relevant data (a quote, an execution report, etc).
+
+Yuo can find some sample usage of this API in the [test project](https://github.com/AdaptiveConsulting/RfqStateMachine/blob/master/Tests/RfqStateMachineTests.cs).
+
+![Encapsulation](https://raw.githubusercontent.com/AdaptiveConsulting/RfqStateMachine/master/StateMachine.PNG?token=1256913__eyJzY29wZSI6IlJhd0Jsb2I6QWRhcHRpdmVDb25zdWx0aW5nL1JmcVN0YXRlTWFjaGluZS9tYXN0ZXIvU3RhdGVNYWNoaW5lLlBORyIsImV4cGlyZXMiOjE0MDQwMzI4NDN9--33bd8eef1b0c9c1064f9d1844ed8f99cb19b96b4)
+
+### Concurrency
+
+I would strongly suggest to get your state machine running on a single thread. In my example the view model MUST call from the UI thread (Dispatcher) and I explicitly marshal server side initiated messages to the UI thread using ObserveOn in my Rx queries.
+
+If you are not building a UI you should consider running your statemachine in an actor or an event loop: anything that will guarantee that calls made on the state machine are sequenced and do not have to be synchronized.
+
+Why? Simply because otherwise you will have to synchronise all accesses to the state machine (and other states in your encasulating class) with locks. If for instance you take a lock while firing an event, all the actions will run under that lock. Those actions will likely call on code external to this class and you now have risks of deadlock.. 
+
+
