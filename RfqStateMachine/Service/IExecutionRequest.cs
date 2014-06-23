@@ -2,6 +2,5 @@
 {
     public interface IExecutionRequest
     {
-        // dummy quote        
     }
 }

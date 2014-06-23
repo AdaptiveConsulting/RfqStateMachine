@@ -2,6 +2,5 @@
 {
     public interface IQuoteRequest
     {
-        // dummy request
     }
 }

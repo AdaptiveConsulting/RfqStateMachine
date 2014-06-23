@@ -2,6 +2,5 @@
 {
     public interface IExecutionReport
     {
-        // dummy quote                
     }
 }

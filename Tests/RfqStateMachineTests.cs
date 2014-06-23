@@ -13,7 +13,7 @@ namespace Tests
     {
         private RfqServiceDouble _rfqServiceDouble;
         private ConcurrencyServiceDouble _concurrencyServiceDouble;
-        private Rfq _sut;
+        private IRfq _sut;
         private List<RfqUpdate> _updates;
         private Exception _error;
         private bool _completed;

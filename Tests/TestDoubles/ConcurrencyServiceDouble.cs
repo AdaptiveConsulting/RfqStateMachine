@@ -7,7 +7,6 @@ namespace Tests.TestDoubles
     {
         public ConcurrencyServiceDouble()
         {
-            // TODO use test scheduler
             Dispatcher = ImmediateScheduler.Instance;
             TaskPool = ImmediateScheduler.Instance;
         }

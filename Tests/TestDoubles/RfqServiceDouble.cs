@@ -5,8 +5,6 @@ using RfqStateMachine.Service;
 
 namespace Tests.TestDoubles
 {
-    // TODO use NSubstitute
-
     public class RfqServiceDouble : IRfqService
     {
         public RfqServiceDouble()

@@ -107,9 +107,9 @@ namespace RfqStateMachine
                 .Permit(RfqEvent.ServerSendsExecutionReport, RfqState.Done);
 
             _stateMachine.Configure(RfqState.Cancelling)
-                .Permit(RfqEvent.ServerCancelled, RfqState.Cancelled)
                 .OnEntry(LogTransition)
-                .OnEntryFrom(_rfqEventUserCancels, OnEntryCancelling);
+                .OnEntryFrom(_rfqEventUserCancels, OnEntryCancelling)
+                .Permit(RfqEvent.ServerCancelled, RfqState.Cancelled);
 
             _stateMachine.Configure(RfqState.Cancelled)
                 .OnEntry(LogTransition)

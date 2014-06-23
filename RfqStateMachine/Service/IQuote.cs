@@ -2,6 +2,5 @@
 {
     public interface IQuote
     {
-        // dummy quote
     }
 }
