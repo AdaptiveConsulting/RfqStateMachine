@@ -177,12 +177,12 @@ This is very straight forward with stateless:</p>
 <p>When the user performs an action or the server sends back a message we want to fire an event at the state machine.
 This is straight forward with stateless</p>
 
-<pre lang="casharp"><code>// for an event without parameters
-_stateMachine.Fire(RfqEvent.ServerQuoteStreamComplete)
+<div class="highlight highlight-csharp"><pre><span class="c1">// for an event without parameters</span>
+<span class="n">_stateMachine</span><span class="p">.</span><span class="n">Fire</span><span class="p">(</span><span class="n">RfqEvent</span><span class="p">.</span><span class="n">ServerQuoteStreamComplete</span><span class="p">)</span>
 
-// for a strongly typed event
-_stateMachine.Fire(_rfqEventServerSendsExecutionReport, executionReport)
-</code></pre>
+<span class="c1">// for a strongly typed event</span>
+<span class="n">_stateMachine</span><span class="p">.</span><span class="n">Fire</span><span class="p">(</span><span class="n">_rfqEventServerSendsExecutionReport</span><span class="p">,</span> <span class="n">executionReport</span><span class="p">)</span>
+</pre></div>
 
 <h3>
 <a name="defining-actions" class="anchor" href="#defining-actions"><span class="octicon octicon-link"></span></a>Defining actions</h3>
