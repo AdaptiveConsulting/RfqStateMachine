@@ -10,7 +10,7 @@ In this post we will look at a concreate usecase, we will define a state machine
 
 In finance Request For Quote (RFQ) is a common mechanism used to request a price electronically: the client submits a request to the pricing server. 
 At some point the server provides a quote (or a serie of quotes) and the client can decide to execute (HIT the price) or pass (cancel).
-We are going to build a state machine that would live client side, in some UI application like reactive trader, to control the state of a RFQ.
+We are going to build a state machine that would live client side, in some UI application like [reactive trader](https://github.com/AdaptiveConsulting/ReactiveTrader), to control the state of a RFQ.
 
 The following diagram describes the different states of the RFQ and the possible transitions.
 
@@ -37,7 +37,7 @@ Those diagrams are also very usefull to discuss with non developers: business pe
 Statemachines can be implemented in many differents ways, either from scratch or using some library. 
 For any decent size statemachine I tend to use [Stateless](https://code.google.com/p/stateless/) but the recommendations that follow would stand for any library or hand written statemachine.
 
-I like to define state machines in a single place: I find that spreading the definition accross multiple files/classes makes it harder to understand (yes, I'm not a fan of the State design pattern..)
+I like to define state machines in a single place: I find that spreading the definition accross multiple files/classes makes it harder to understand.
 
 Stateless offers a nice fluent syntax to define states and possible transitions. 
 
@@ -157,11 +157,11 @@ If the current state can accept an event we generally want to execute our code a
  - when you exit a state
  - upon transition, if you have different behavior to implement for different transitions leading to a same state
 
-I tend to apply actions upon entry into a state and use the other variants 
+I tend to apply actions upon entry into a state and use the other variants only in specific scenarios.
 
 **Important: when implementing a statemachine, you want to put all your logic inside those actions (on state entry, on state exit, on transition) because the state machine has already checked that the incoming event was valid for the current state.**
 
-Here is an example with stateless syntax. When the use request we want to log the transition and also to prtform some logic on entry in the requesting state:
+Here is an example with Stateless syntax. When the user requests a quote we want to log the transition and also to perform some logic on entry in the requesting state:
 
 ```csharp
 _stateMachine.Configure(RfqState.Requesting)
@@ -173,14 +173,7 @@ _stateMachine.Configure(RfqState.Requesting)
 
 private void OnEntryRequesting(IQuoteRequest quoteRequest)
 {
-    _requestSubscription.Disposable = _rfqService.RequestQuoteStream(quoteRequest)
-        .Timeout(TimeSpan.FromSeconds(5))
-        .ObserveOn(_concurrencyService.Dispatcher)
-        .SubscribeOn(_concurrencyService.TaskPool)
-        .Subscribe(
-            quote => _stateMachine.Fire(_rfqEventServerSendsQuote, quote),
-            ex => _stateMachine.Fire(_rfqEventServerQuoteError, ex),
-            () => _stateMachine.Fire(RfqEvent.ServerQuoteStreamComplete));
+    // here goes the code to send a quote request to the server
 }
 ```
 
@@ -233,13 +226,13 @@ public interface IRfq : IDisposable
 }
 ```
 
-This is very much CQRS style: a view model can call the RequestQuote, Cancel and Execute methods which act as Commands and internally fire events (don't get confused by commands, events, messages, it's all the same here).
+This is very much CQRS style: a view model can call the RequestQuote, Cancel and Execute methods which act as Commands and internally fire events. Don't get confused by 'Command' and 'Event', they are the same, it's just that in the context of CQRS we talk about commands and for state machine I've use the term event from the beginning (we could use message as well if we want).
 
 The view model also subscribes to the Updates stream which will notify when the state machine transitions and provide the relevant data (a quote, an execution report, etc).
 
-Yuo can find some sample usage of this API in the [test project](https://github.com/AdaptiveConsulting/RfqStateMachine/blob/master/Tests/RfqStateMachineTests.cs).
+You can find some sample usage of this API in the [test project](https://github.com/AdaptiveConsulting/RfqStateMachine/blob/master/Tests/RfqStateMachineTests.cs).
 
-![Encapsulation](https://raw.githubusercontent.com/AdaptiveConsulting/RfqStateMachine/master/StateMachine.PNG?token=1256913__eyJzY29wZSI6IlJhd0Jsb2I6QWRhcHRpdmVDb25zdWx0aW5nL1JmcVN0YXRlTWFjaGluZS9tYXN0ZXIvU3RhdGVNYWNoaW5lLlBORyIsImV4cGlyZXMiOjE0MDQwMzI4NDN9--33bd8eef1b0c9c1064f9d1844ed8f99cb19b96b4)
+![Encapsulation](https://raw.githubusercontent.com/AdaptiveConsulting/RfqStateMachine/master/Encapsulation.PNG?token=1256913__eyJzY29wZSI6IlJhd0Jsb2I6QWRhcHRpdmVDb25zdWx0aW5nL1JmcVN0YXRlTWFjaGluZS9tYXN0ZXIvRW5jYXBzdWxhdGlvbi5QTkciLCJleHBpcmVzIjoxNDA0MTMyMzkwfQ%3D%3D--33adc46c203e50b1adbb54dcdbc27c98faf1d0be)
 
 ### Concurrency
 
@@ -249,4 +242,30 @@ If you are not building a UI you should consider running your statemachine in an
 
 Why? Simply because otherwise you will have to synchronise all accesses to the state machine (and other states in your encasulating class) with locks. If for instance you take a lock while firing an event, all the actions will run under that lock. Those actions will likely call on code external to this class and you now have risks of deadlock.. 
 
+### Race conditions
 
+Never forget that in an event driven system things can happen in an order you do not expect, and your state machine should be ready for that.
+
+Here is an example, which use a slightly different protocol for the RFQ:
+
+ - the user receives a valid quote Q1 from the server
+ - the server sends an invalid quote message (to invalidate the quote because the market has moved or for whatever reason)
+ - the user HIT the quote Q1 (executes) while the invalidation message is still in flight (ie. still travelling somewhere between the server and the client)
+ - the state machine transitions to the state 'Executing'
+ - the client receives the invalidate quote message/event but the state machine is in a state where you might not have expected to receive such event...
+
+Because there is a propagation delay between a client and a server, you will see behaviors in your systems that you did not thought about initially and that you have probably not covered in your unit tests. 
+
+What to do about it?
+
+1. For each state go through the list of all possible events and ask yourself: could this one possibly happen in this state? If it does, how should it be handled?
+2. Log all transitions of the state machine and all events fired. This is priceless while investigating for such issues.
+3. Unit testing is not enough, you will need to test in a deployed environment.
+
+## Wrap up
+
+It takes a bit of time to get your head around state machines but once you get it those little things yield very nice clean code and it's also very simple to introduce new state and transitions if you follow the few guidelines we discussed here.
+
+There are a few other things I'd like to talk about with state machines (for instance visualising them while the system is running, code generation, etc) but we will cover that in a future blog post.
+
+I would also suggest to have a look to the work of Pieter Hintjens (ZeroMQ) on state machines and code generation, he has done some [very cool stuff in this area](https://github.com/zeromq/zproto) 
