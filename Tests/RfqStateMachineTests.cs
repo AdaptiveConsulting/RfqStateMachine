@@ -2,8 +2,10 @@
 using System;
 using System.Collections.Generic;
 using System.Reactive;
+using System.Reflection;
 using NUnit.Framework;
 using RfqStateMachine;
+using Stateless;
 using Tests.TestDoubles;
 
 namespace Tests
@@ -105,6 +107,14 @@ namespace Tests
             Assert.AreEqual(RfqState.Quoted, _updates[2].RfqState);
             Assert.AreEqual(RfqState.Cancelling, _updates[3].RfqState);
             Assert.AreEqual(RfqState.Cancelled, _updates[4].RfqState);
+        }
+
+        [Test]
+        public void GenerateStateDiagram()
+        {
+            var field = _sut.GetType().GetField("_stateMachine", BindingFlags.Instance | BindingFlags.NonPublic);
+            var stateMachine = (StateMachine<RfqState, RfqEvent>) field.GetValue(_sut);
+            Console.WriteLine(stateMachine.ToStateDiagram());
         }
     }
 }
