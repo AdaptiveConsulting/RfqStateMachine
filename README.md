@@ -270,7 +270,7 @@ To generate a diagram from the output of the graph generation code, you can eith
 
 This is the output I got using the webapp:
 
-![Generated diagram](https://raw.githubusercontent.com/AdaptiveConsulting/RfqStateMachine/master/Encapsulation.PNG?token=1256913__eyJzY29wZSI6IlJhd0Jsb2I6QWRhcHRpdmVDb25zdWx0aW5nL1JmcVN0YXRlTWFjaGluZS9tYXN0ZXIvRW5jYXBzdWxhdGlvbi5QTkciLCJleHBpcmVzIjoxNDA0MTMyMzkwfQ%3D%3D--33adc46c203e50b1adbb54dcdbc27c98faf1d0be)
+![Generated diagram](https://raw.githubusercontent.com/AdaptiveConsulting/RfqStateMachine/master/Generated.png)
 
 ## Wrap up
 
