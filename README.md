@@ -147,6 +147,7 @@ _stateMachine.Fire(RfqEvent.ServerQuoteStreamComplete)
 // for a strongly typed event
 _stateMachine.Fire(_rfqEventServerSendsExecutionReport, executionReport)
 ```
+[gist](https://gist.github.com/odeheurles/35dae01a47b3d807b97c)
 
 ###Defining actions
 
@@ -177,6 +178,7 @@ private void OnEntryRequesting(IQuoteRequest quoteRequest)
     // here goes the code to send a quote request to the server
 }
 ```
+[gist](https://gist.github.com/odeheurles/fce8fdb029501f754df4)
 
 **Tip**: you can think of the OnExit action as a Dispose() method for the corresponding state. It is very useful if for instance you had a timer runing during that state and you need to cancel it or you have whatever active Rx query that you want to unsubscribe.
 
@@ -197,6 +199,7 @@ private void OnUnhandledTrigger(RfqState state, RfqEvent trigger)
     _rfqUpdateSubject.OnError(new ApplicationException(message));
 }
 ```
+[gist](https://gist.github.com/odeheurles/a0f838e4b83e53f88379)
 
 You can also ignore individual events on a state with the Stateless *.Ignore()* method.
 
@@ -226,6 +229,7 @@ public interface IRfq : IDisposable
     IObservable<RfqUpdate> Updates { get; } 
 }
 ```
+[gist](https://gist.github.com/odeheurles/911258d648ceb3f1eaba)
 
 This is very much CQRS style: a view model can call the RequestQuote, Cancel and Execute methods which act as Commands and internally fire events. Don't get confused by 'Command' and 'Event', they are the same, it's just that in the context of CQRS we talk about commands and for state machine I've use the term event from the beginning (we could use message as well if we want).
 
