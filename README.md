@@ -4,7 +4,7 @@ We highlighted quite a few techniques to deal with reactive systems in [Reactive
 A *state machine* is a simple yet powerful way of decomposing some functionality into *states* and a set of valid *transitions* between them. 
 When you find yourself dealing for instance with user input and/or server events and see lots of branching in your code (if/switch statements) on some `_state` variables, chances are high that a state machine could be introduced to simplify things.
 
-In this post we will look at a concreate usecase, we will define a state machine for it and we will see how we can organise our code around the state machnine and interact with it. I've also created a [companion GitHub project](https://github.com/AdaptiveConsulting/RfqStateMachine) where you can find the 
+In this post we will look at a concrete use case, we will define a state machine for it and we will see how we can organise our code around the state machine and interact with it. I've also created a [companion GitHub project](https://github.com/AdaptiveConsulting/RfqStateMachine) where you can find the 
 full example.
 
 ## Example: RFQ workflow
