@@ -1,46 +1,50 @@
 # RFQ State Machine
 
 We highlighted quite a few techniques to deal with reactive systems in [Reactive Trader](https://github.com/AdaptiveConsulting/ReactiveTrader). There is another one, that we commonly use, that was not demonstrated. 
-A *state machine* is a simple yet powerfull way of decomposing some functionality into *states* and a set of valid *transitions* between them. 
-When you find yourself dealing for instance with user input and/or server events and see lots of branching in your code (if/switch statements) on some _state variables, chances are high that a statemachine could be introduced to simplify things.
+A *state machine* is a simple yet powerful way of decomposing some functionality into *states* and a set of valid *transitions* between them. 
+When you find yourself dealing for instance with user input and/or server events and see lots of branching in your code (if/switch statements) on some `_state` variables, chances are high that a state machine could be introduced to simplify things.
 
 In this post we will look at a concreate usecase, we will define a state machine for it and we will see how we can organise our code around the state machnine and interact with it. I've also created a [companion GitHub project](https://github.com/AdaptiveConsulting/RfqStateMachine) where you can find the 
 full example.
 
 ## Example: RFQ workflow
 
-In finance Request For Quote (RFQ) is a common mechanism used to request a price electronically: the client submits a request to the pricing server. 
-At some point the server provides a quote (or a serie of quotes) and the client can decide to execute (HIT the price) or pass (cancel).
-We are going to build a state machine that would live client side, in some UI application like [reactive trader](https://github.com/AdaptiveConsulting/ReactiveTrader), to control the state of a RFQ.
+In finance "Request for Quote" (RFQ) is a common mechanism used to request a price electronically: the client submits a request to the pricing server. 
+At some point the server provides a quote (or a series of quotes) and the client can decide to execute (hit) or pass (cancel). When a client "executes" or "hits" a price they are actually placing an Order to make a trade at that given price. This order could still be rejected for reasons that could be 
+ * financial (client has exceed their credit limit), 
+ * environmental (excessive latency) or 
+ * market driven (large move in the market means all trades are off).
+
+We are going to build a state machine that would live client side, in some UI application like [reactive trader](https://github.com/AdaptiveConsulting/ReactiveTrader), to control the state of an RFQ.
 
 The following diagram describes the different states of the RFQ and the possible transitions.
 
 ![state machine diagram](https://raw.githubusercontent.com/AdaptiveConsulting/RfqStateMachine/master/StateMachine.PNG?token=1256913__eyJzY29wZSI6IlJhd0Jsb2I6QWRhcHRpdmVDb25zdWx0aW5nL1JmcVN0YXRlTWFjaGluZS9tYXN0ZXIvU3RhdGVNYWNoaW5lLlBORyIsImV4cGlyZXMiOjE0MDQwMzI4NDN9--33bd8eef1b0c9c1064f9d1844ed8f99cb19b96b4)
 
-This is a visual representation of a statemachine, it contains 
+This is a visual representation of a state machine, it contains 
 
  - states:
    - an initial state (at the top),
    - intermediate states (requesting, quoted, Executing)
-   - terminal states (Error, Done, Canceled)
+   - terminal states (Error, Done, Cancelled)
  - and transitions between states (arrows)
 
-I find those diagrams very helpfull to think about the system, while building them I will generally go through all the states I already discovered and ask myself the following questions: 
+I find those diagrams very helpful to think about the system, while building them I will generally go through all the states I already discovered and ask myself the following questions: 
 
- - could anything else happen in this state? 
- - Any unhappy path? (ie. timeout, error, etc) 
- - Do we have a representation of this particular state for the corresponding UI? (if you are building a UI).
+ - Could anything else happen in this state? 
+ - Are there any unhappy paths? (e.g. time-outs, error, etc.) 
+ - Do we have a representation of this particular state in the UI? (if you are building a UI).
 
-Those diagrams are also very usefull to discuss with non developers: business people, UX, etc.
+Those diagrams are also very useful to discuss with non developers: business people, UX, etc.
 
 ## From diagram to code
 
-Statemachines can be implemented in many differents ways, either from scratch or using some library. 
-For any decent size statemachine I tend to use [Stateless](https://code.google.com/p/stateless/) but the recommendations that follow would stand for any library or hand written statemachine.
+State machines can be implemented in many different ways, either from scratch or using some library. 
+For any decent size state machine I tend to use [Stateless](https://code.google.com/p/stateless/) but the recommendations that follow would stand for any library or hand written state machine.
 
-I like to define state machines in a single place: I find that spreading the definition accross multiple files/classes makes it harder to understand.
+I like to define state machines in a single place: I find that spreading the definition across multiple files/classes makes it harder to understand.
 
-Stateless offers a nice fluent syntax to define states and possible transitions. 
+_Stateless_ offers a nice fluent syntax to define states and possible transitions. 
 
 ###Defining states
 
@@ -91,17 +95,17 @@ public enum RfqEvent
 
 I like to prefix those events with their origin, just to makes things explicit (here we have 'Server', 'User', 'Internal')
 
-As you can see events coming from the server always expose a happy path (for instance ServerNewQuote when the server sends a new quote) and at least one corresponding error event (ServerQuoteError).
+As you can see events coming from the server always expose a happy path (for instance `ServerNewQuote` when the server sends a new quote) and at least one corresponding error event (`ServerQuoteError`).
 
 ![Components](https://raw.githubusercontent.com/AdaptiveConsulting/RfqStateMachine/master/Components.PNG?token=1256913__eyJzY29wZSI6IlJhd0Jsb2I6QWRhcHRpdmVDb25zdWx0aW5nL1JmcVN0YXRlTWFjaGluZS9tYXN0ZXIvQ29tcG9uZW50cy5QTkciLCJleHBpcmVzIjoxNDA0MDMyOTYxfQ%3D%3D--f635d386ef4ee480652de98f62d9903fc2660e25)
 
 
 You will also often have internal events, for instance a timer expiring can raise an internal event to trigger a state transition.
 
-Events may or not carry some data: for instance UserRequests event needs to contain the description of the product being priced.
+Events may or not carry some data: for instance `UserRequests` event needs to contain the description of the product being priced.
 For those events requiring parameters it is useful to define strongly typed events. 
 
-This is how we declare them with Stateless, for instance for the ServerSendsQuote event:
+This is how we declare them with _Stateless_, for instance for the `ServerSendsQuote` event:
 
 ```csharp
 _rfqEventServerSendsQuote = _stateMachine.SetTriggerParameters<IQuote>(RfqEvent.ServerNewQuote);
@@ -163,7 +167,7 @@ I tend to apply actions upon entry into a state and use the other variants only 
 
 **Important: when implementing a statemachine, you want to put all your logic inside those actions (on state entry, on state exit, on transition) because the state machine has already checked that the incoming event was valid for the current state.**
 
-Here is an example with Stateless syntax. When the user requests a quote we want to log the transition and also to perform some logic on entry in the requesting state:
+Here is an example with _Stateless_ syntax. When the user requests a quote we want to log the transition and also to perform some logic on entry in the requesting state:
 
 ```csharp
 _stateMachine.Configure(RfqState.Requesting)
@@ -180,13 +184,13 @@ private void OnEntryRequesting(IQuoteRequest quoteRequest)
 ```
 [gist](https://gist.github.com/odeheurles/fce8fdb029501f754df4)
 
-**Tip**: you can think of the OnExit action as a Dispose() method for the corresponding state. It is very useful if for instance you had a timer runing during that state and you need to cancel it or you have whatever active Rx query that you want to unsubscribe.
+**Tip**: you can think of the `OnExit` action as a `Dispose()` method for the corresponding state. It is very useful if for instance you had a timer running during that state and you need to cancel it. This also works well with Rx and disposal of subscriptions.
 
 ### Handling errors
 
 When an event is fired at the state machine and the state machine has no transition defined for this event in the current state we can implement 2 behaviors: ignoring the event or raising an exception.
 
-By default Stateless will raise an exception but you can handle yourself invalid transitions:
+By default _Stateless_ will raise an exception but you can handle yourself invalid transitions:
 
 ```csharp
 _stateMachine.OnUnhandledTrigger(OnUnhandledTrigger);
@@ -201,21 +205,22 @@ private void OnUnhandledTrigger(RfqState state, RfqEvent trigger)
 ```
 [gist](https://gist.github.com/odeheurles/a0f838e4b83e53f88379)
 
-You can also ignore individual events on a state with the Stateless *.Ignore()* method.
+You can also ignore individual events on a state with the Stateless `.Ignore()` method.
 
 ### Encapsulation
 
 We have now defined everything we need for the state machine:
  - states,
- - events and strongly typed events
+ - strongly typed events
  - possible transitions
- - actions on entry and on exit
+ - entry actions 
+ - exit action
  - error handling
  - how to fire events at the state machine
 
-The next step is to encapsulate everything in a single class so we don't leak the specifics of Stateless and the state machine to the rest of our code.
+The next step is to encapsulate everything in a single class so we don't leak the specifics of _Stateless_ and the state machine to the rest of our code.
 
-For our example I've created a class **Rfq** that you can find [here](https://github.com/AdaptiveConsulting/RfqStateMachine/blob/master/RfqStateMachine/Rfq.cs).
+For our example I've created a class _Rfq_ that you can find [here](https://github.com/AdaptiveConsulting/RfqStateMachine/blob/master/RfqStateMachine/Rfq.cs).
 
 This class implements the following interface:
 
@@ -231,7 +236,7 @@ public interface IRfq : IDisposable
 ```
 [gist](https://gist.github.com/odeheurles/911258d648ceb3f1eaba)
 
-This is very much CQRS style: a view model can call the RequestQuote, Cancel and Execute methods which act as Commands and internally fire events. Don't get confused by 'Command' and 'Event', they are the same, it's just that in the context of CQRS we talk about commands and for state machine I've use the term event from the beginning (we could use message as well if we want).
+This is very much CQRS style: a view model can call the `RequestQuote`, `Cancel` and `Execute` methods which act as commands and internally fire events. Don't get confused by 'Command' and 'Event', they are the same, it's just that in the context of CQRS we talk about commands and for state machine I've use the term event from the beginning (we could use message as well if we want).
 
 The view model also subscribes to the Updates stream which will notify when the state machine transitions and provide the relevant data (a quote, an execution report, etc).
 
@@ -241,11 +246,11 @@ You can find some sample usage of this API in the [test project](https://github.
 
 ### Concurrency
 
-I would strongly suggest to get your state machine running on a single thread. In my example the view model MUST call from the UI thread (Dispatcher) and I explicitly marshal server side initiated messages to the UI thread using ObserveOn in my Rx queries.
+I would strongly suggest to get your state machine running on a single thread. In my example the view model OK call from the UI thread (Dispatcher) and I explicitly marshal server side initiated messages to the UI thread using `ObserveOn` in my Rx queries.
 
-If you are not building a UI you should consider running your statemachine in an actor or an event loop: anything that will guarantee that calls made on the state machine are sequenced and do not have to be synchronized.
+If you are not building a UI you should consider running your state machine in an actor or an event loop: anything that will guarantee that calls made on the state machine are sequenced/serialized and do not have to be synchronized.
 
-Why? Simply because otherwise you will have to synchronise all accesses to the state machine (and other states in your encasulating class) with locks. If for instance you take a lock while firing an event, all the actions will run under that lock. Those actions will likely call on code external to this class and you now have risks of deadlock.. 
+Why? Simply because otherwise you will have to synchronise all accesses to the state machine (and other states in your encapsulating class) with locks. If for instance you take a lock while firing an event, all the actions will run under that lock. Those actions will likely call on code external to this class and you now have risks of deadlock. 
 
 ### Race conditions
 
@@ -255,11 +260,11 @@ Here is an example, which use a slightly different protocol for the RFQ:
 
  - the user receives a valid quote Q1 from the server
  - the server sends an invalid quote message (to invalidate the quote because the market has moved or for whatever reason)
- - the user HIT the quote Q1 (executes) while the invalidation message is still in flight (ie. still travelling somewhere between the server and the client)
+ - the user Hit the quote Q1 (executes) while the invalidation message is still in flight (ie. still travelling somewhere between the server and the client)
  - the state machine transitions to the state 'Executing'
  - the client receives the invalidate quote message/event but the state machine is in a state where you might not have expected to receive such event...
 
-Because there is a propagation delay between a client and a server, you will see behaviors in your systems that you did not thought about initially and that you have probably not covered in your unit tests. 
+Because there is a propagation delay between a client and a server, you will see behaviours in your systems that you did not consider initially and that you have probably not covered in your unit tests. 
 
 What to do about it?
 
@@ -269,7 +274,7 @@ What to do about it?
 
 ### Visualisation
 
-[Matt](http://weareadaptive.com/author/matt/) wrote [some code](https://github.com/AdaptiveConsulting/RfqStateMachine/blob/master/Tests/StateMachineDiagramPrinter.cs) which reflectively retrieves the definition of the State machine and is able to produce a graph definition in [DOT code](http://www.graphviz.org/doc/info/lang.html)  (a language to represent graphs).
+[Matt](http://weareadaptive.com/author/matt/) wrote [some code](https://github.com/AdaptiveConsulting/RfqStateMachine/blob/master/Tests/StateMachineDiagramPrinter.cs) which reflectively retrieves the definition of the state machine and is able to produce a graph definition in [DOT code](http://www.graphviz.org/doc/info/lang.html)  (a language to represent graphs).
 
 To generate a diagram from the output of the graph generation code, you can either download [Graphviz](http://www.graphviz.org/) and run it locally, or simply use an [online GraphViz webapp](http://sandbox.kidstrythisathome.com/erdos/).
 
