@@ -302,7 +302,18 @@ This is straight forward with stateless</p>
 <li>For each state go through the list of all possible events and ask yourself: could this one possibly happen in this state? If it does, how should it be handled?</li>
 <li>Log all transitions of the state machine and all events fired. This is priceless while investigating for such issues.</li>
 <li>Unit testing is not enough, you will need to test in a deployed environment.</li>
-</ol><h2>
+</ol><h3>
+<a name="visualisation" class="anchor" href="#visualisation"><span class="octicon octicon-link"></span></a>Visualisation</h3>
+
+<p><a href="http://weareadaptive.com/author/matt/">Matt</a> wrote <a href="https://github.com/AdaptiveConsulting/RfqStateMachine/blob/master/Tests/StateMachineDiagramPrinter.cs">some code</a> which reflectively retrieves the definition of the State machine and is able to produce a graph definition in <a href="http://www.graphviz.org/doc/info/lang.html">DOT code</a>  (a language to represent graphs).</p>
+
+<p>To generate a diagram from the output of the graph generation code, you can either download <a href="http://www.graphviz.org/">Graphviz</a> and run it locally, or simply use an <a href="http://sandbox.kidstrythisathome.com/erdos/">online GraphViz webapp</a>.</p>
+
+<p>This is the output I got using the webapp:</p>
+
+<p><img src="https://raw.githubusercontent.com/AdaptiveConsulting/RfqStateMachine/master/Generated.png" alt="Generated diagram"></p>
+
+<h2>
 <a name="wrap-up" class="anchor" href="#wrap-up"><span class="octicon octicon-link"></span></a>Wrap up</h2>
 
 <p>It takes a bit of time to get your head around state machines but once you get it those little things yield very nice clean code and it's also very simple to introduce new state and transitions if you follow the few guidelines we discussed here.</p>
