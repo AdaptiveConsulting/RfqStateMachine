@@ -262,6 +262,16 @@ What to do about it?
 2. Log all transitions of the state machine and all events fired. This is priceless while investigating for such issues.
 3. Unit testing is not enough, you will need to test in a deployed environment.
 
+### Visualisation
+
+[Matt](http://weareadaptive.com/author/matt/) wrote [some code](https://github.com/AdaptiveConsulting/RfqStateMachine/blob/master/Tests/StateMachineDiagramPrinter.cs) which reflectively retrieves the definition of the State machine and is able to produce a graph definition in [DOT code](http://www.graphviz.org/doc/info/lang.html)  (a language to represent graphs).
+
+To generate a diagram from the output of the graph generation code, you can either download [Graphviz](http://www.graphviz.org/) and run it locally, or simply use an [online GraphViz webapp](http://sandbox.kidstrythisathome.com/erdos/).
+
+This is the output I got using the webapp:
+
+![Generated diagram](https://raw.githubusercontent.com/AdaptiveConsulting/RfqStateMachine/master/Encapsulation.PNG?token=1256913__eyJzY29wZSI6IlJhd0Jsb2I6QWRhcHRpdmVDb25zdWx0aW5nL1JmcVN0YXRlTWFjaGluZS9tYXN0ZXIvRW5jYXBzdWxhdGlvbi5QTkciLCJleHBpcmVzIjoxNDA0MTMyMzkwfQ%3D%3D--33adc46c203e50b1adbb54dcdbc27c98faf1d0be)
+
 ## Wrap up
 
 It takes a bit of time to get your head around state machines but once you get it those little things yield very nice clean code and it's also very simple to introduce new state and transitions if you follow the few guidelines we discussed here.
